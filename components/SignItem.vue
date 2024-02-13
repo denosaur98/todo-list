@@ -4,19 +4,29 @@
       <button class="sign__btn">
         <FontAwesomeIcon :icon="faUser" class="sign__icon"/>
       </button>
-      <div class="autorization__btns-block">
+      <div class="autorization__btns-block" v-if="!loginAccess">
         <button class="autorization__btn" @click="toggleModal('login')">Вход</button>
         <button class="autorization__btn" @click="toggleModal('register')">Регистрация</button>
+      </div>
+      <div class="autorization__access" v-else>
+        <p>вы вошли как:</p>
+        <NuxtLink class="logged__user">{{ loggedUser }}</NuxtLink>
       </div>
     </div>
     <div class="sign__overlay" v-if="loginModalVisible || registerModalVisible" @click="toggleModal(loginModalVisible ? 'login' : 'register')"></div>
     <div class="sign__modal" v-if="loginModalVisible">
       <h1 class="modal__title">Вход</h1>
       <div class="modal__inputs">
-        <input class="input__user" placeholder="введите адрес эл.почты:">
-        <input class="input__password" placeholder="введите пароль:" type="password">
+        <div class="input__wrapper">
+          <p class="input__validate" v-if="validateErrorName">{{ validateErrorName }}</p>
+          <input class="input__user" placeholder="введите адрес эл.почты:" v-model="loginMail">
+        </div>
+        <div class="input__wrapper">
+          <p class="input__validate" v-if="validateErrorPass">{{ validateErrorPass }}</p>
+          <input class="input__password" placeholder="введите пароль:" type="password" v-model="loginPassword">
+        </div>
       </div>
-      <button class="modal__submit">Войти</button>
+      <button class="modal__submit" @click="loginUser">Войти</button>
     </div>
     <div class="sign__modal" v-if="registerModalVisible">
       <h1 class="modal__title">Регистрация</h1>
@@ -38,7 +48,7 @@
           <p class="input__validate" v-if="validateErrorPass">{{ validateErrorPass }}</p>
           <input
             class="input__password"
-            :placeholder="registerPassword !== registerPasswordAgain ? 'пароли не совпадают' : 'введите пароль:'"
+            :placeholder="registerPassword !== registerPasswordAgain ? 'пароли не совпадают' : 'повторите пароль:'"
             type="password"
             v-model="registerPasswordAgain"
           >
@@ -60,6 +70,10 @@ const registerModalVisible = ref(false)
 const registerMail = ref('')
 const registerPassword = ref('')
 const registerPasswordAgain = ref('')
+const loginMail = ref('')
+const loginPassword = ref('')
+const loginAccess = ref(false)
+const loggedUser = ref('')
 const validateErrorName = ref('')
 const validateErrorPass = ref('')
 function toggleModal(modal) {
@@ -80,6 +94,10 @@ function createUser() {
     validateErrorPass.value = 'пароли не совпадают'
   } else if(findUser) {
     validateErrorName.value = 'пользователь с таким именем уже существует'
+  } else if (registerMail.value === '') {
+    validateErrorName.value = 'введите почту'
+  } else if (registerPassword.value === '' || registerPasswordAgain.value === '') {
+    validateErrorPass.value = 'введите пароль'
   } else {
     const userId = store.state.users.length + 1
     store.dispatch('createUser', {
@@ -93,7 +111,15 @@ function createUser() {
     validateErrorName.value = ''
     validateErrorPass.value = ''
     registerModalVisible.value = false
-    console.log(store.state.users)
+  }
+}
+function loginUser() {
+  const findName = store.state.users.find(n => n.userName === loginMail.value)
+  const findPassword = store.state.users.find(p => p.userPassword === loginPassword.value)
+  if(findName && findPassword) {
+    loginAccess.value = true
+    loginModalVisible.value = false
+    loggedUser.value = findName.userName
   }
 }
 </script>
@@ -142,6 +168,35 @@ function createUser() {
         font-size: 15px;
         border: none;
         color: #2c2c2c;
+
+        &:hover {
+          transition: 0.3s;
+          color: #646464;
+        }
+      }
+    }
+
+    .autorization__access {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+
+      p {
+        font-size: 15px;
+        line-height: 12px;
+        font-family: 'Exo';
+        white-space: nowrap;
+        color: #2c2c2c;
+      }
+
+      .logged__user {
+        cursor: pointer;
+        font-size: 18px;
+        text-decoration: underline;
+        font-family: 'Exo';
+        color: #2c2c2c;
+        max-width: 200px;
+        overflow: hidden;
 
         &:hover {
           transition: 0.3s;
